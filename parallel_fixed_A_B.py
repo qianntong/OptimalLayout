@@ -33,6 +33,11 @@ BL_w = 80               # the width of each parking block
 k_max = A*B/S_p         # the maximum parking spots the actual yard can provide
 
 
+best_value = float('inf')  # start with infinity
+best_x = None  # store the optimal solution
+objective_values = []  # store obj value every time
+
+
 def d_t_y(M, N, n_p, n_r, n_t):
     return 10 * n_r * M + 80*N + (M + N + 1.5) * n_p * P + 2 * n_t * P
 
@@ -82,8 +87,20 @@ def callback_function(x, convergence):
     current_value = objective(x)
     objective_values.append(current_value)
 
+# def callback_function(x, convergence):
+#     global best_value, best_x
+#
+#     current_value = objective(x)
+#
+#     if current_value < best_value:
+#         best_value = current_value
+#         best_x = x.copy()
+#         objective_values.append(current_value)
+#         return False
+#     else:
+#         return False
 
-# # Decision variable
+# # Decision variables
 # M: The number of columns of parking blocks in the layout
 # N: The number of rows of parking blocks in the layout
 # n_t: numbers of from the train side
@@ -121,43 +138,51 @@ else:
     row = [M, N, n_t, n_p, n_r, value, capacity, length, width]
     print(f"The decision making for the case k = {k} is: {row}")
 
-# # Plot the convergence curve
-# plt.plot(objective_values, label="Total distances")
-# plt.xlabel("Iteration")
-# plt.ylabel("Objective Values")
-# plt.title("Convergence of Differential Evolution")
-# plt.legend()
-# plt.grid(True)
-# plt.show()
+plot_values = []
+min_value = float('inf')
+
+for value in objective_values:
+    min_value = min(min_value, value)
+    plot_values.append(min_value)
+
+# Plot the convergence curve
+plt.figure(figsize=(8, 6))
+plt.plot(plot_values, label="Total distances")
+plt.xlabel("Iteration")
+plt.ylabel("Total travel distances")
+plt.title("Convergence of Differential Evolution")
+plt.legend()
+plt.grid(True)
+plt.show()
 
 
-# try different k
-try:
-    for k in range(300, 881, 10):
-        if k >= k_max:
-            print(f"Error: The expected demand is larger than the actual maximum spot {int(k_max)}.")
-            break
-
-        result_de = differential_evolution(constrained_objective, bounds, strategy='best1bin',
-                                           maxiter=1000, tol=1e-7, mutation=(0.5, 1), recombination=0.7)
-
-        result_de.x = list(map(int, result_de.x))
-        M = decision_variables[-1][0]
-        N = decision_variables[-1][1]
-        n_t = result_de.x[2]
-        n_p = result_de.x[3]
-        n_r = decision_variables[-1][2]
-        value = result_de.fun
-        capacity = M * N * 2 * n_r
-        length = (M+1) * n_p * P + M * 10 * n_r
-        width = (N+1) * n_p * P + N * BL_w
-        results.append([k, M, N, n_t, n_p, n_r, value, capacity, length, width])
-        print(f"Processed k = {k}, where the row data is {[k, M, N, n_t, n_p, n_r, value, capacity, length, width]}")
-
-# Record k if error occurs
-except Exception as e:
-    print(f"Last call ends in k = {k}, Error: {e}")
-
-df = pd.DataFrame(results, columns=["k", "M", "N", "n_t", "n_p", "n_r", "value", "capacity_check", "length_check", "width_check"])
-df.to_excel("k_results.xlsx", index=False)
-print("Done!")
+# # try different k
+# try:
+#     for k in range(300, 601, 10):
+#         if k >= k_max:
+#             print(f"Error: The expected demand is larger than the actual maximum spot {int(k_max)}.")
+#             break
+#
+#         result_de = differential_evolution(constrained_objective, bounds, strategy='best1bin',
+#                                            maxiter=1000, tol=1e-7, mutation=(0.5, 1), recombination=0.7)
+#
+#         result_de.x = list(map(int, result_de.x))
+#         M = decision_variables[-1][0]
+#         N = decision_variables[-1][1]
+#         n_t = result_de.x[2]
+#         n_p = result_de.x[3]
+#         n_r = decision_variables[-1][2]
+#         value = result_de.fun
+#         capacity = M * N * 2 * n_r
+#         length = (M+1) * n_p * P + M * 10 * n_r
+#         width = (N+1) * n_p * P + N * BL_w
+#         results.append([k, M, N, n_t, n_p, n_r, value, capacity, length, width])
+#         print(f"Processed k = {k}, where the row data is {[k, M, N, n_t, n_p, n_r, value, capacity, length, width]}")
+#
+# # Record k if error occurs
+# except Exception as e:
+#     print(f"Last call ends in k = {k}, Error: {e}")
+#
+# df = pd.DataFrame(results, columns=["k", "M", "N", "n_t", "n_p", "n_r", "value", "capacity_check", "length_check", "width_check"])
+# df.to_excel("k_results.xlsx", index=False)
+# print("Done!")
